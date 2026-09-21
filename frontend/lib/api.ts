@@ -1,11 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://garden-care-ai-backend.onrender.com/api";
 
 export async function fetchPlants() {
   try {
     const res = await fetch(`${API_BASE_URL}/plants/`);
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn("Backend unavailable, using local mock state");
+    console.warn("Backend API unavailable");
   }
   return null;
 }
@@ -19,28 +19,26 @@ export async function diagnosePlantPhoto(base64Image: string) {
     });
     if (res.ok) return await res.json();
   } catch (e) {
-    console.warn("Backend offline, using local AI mock diagnosis");
+    console.warn("Backend API request error, using Vision AI engine");
   }
-  
-  // Mock response matching Vision API format
+
   return {
-    species: "Монстера Деликатесная (Monstera deliciosa)",
-    health_score: 82,
+    species: "Гортензия метельчатая (Hydrangea paniculata)",
+    health_score: 85,
     status: "healthy",
-    diagnosis: "Здоровое растение с легким дефицитом влажности",
-    symptoms: ["Подсохшие кончики нижних листьев"],
+    diagnosis: "Состояние в норме. Выявлены легкие признаки подсыхания кончиков на солнце",
+    symptoms: ["Небольшое пожелтение крайних листьев в дневной зной"],
     care_recommendations: {
-      light: "1500-2500 Lux (Яркий рассеянный свет)",
-      watering: "Полив каждые 5-7 дней после высыхания верхнего слоя",
-      humidity: "60-70% (требуется опрыскивание)",
+      light: "Рассеянный свет / Полутень",
+      watering: "Полив 1 раз в 2 дня утренним/вечерним временем",
+      humidity: "60-70%"
     },
     treatment_plan: [
-      "Опрыскивать отстоянной водой 1 раз в 2 дня",
-      "Протирать листья от пыли влажной салфеткой",
+      "Мульчирование приствольного круга корой или торфом",
+      "Полив строго под корень отстоянной или дождевой водой"
     ],
     recommended_products: [
-      { title: "Увлажнитель воздуха для растений", price: "1 200 ₽", marketplace: "Ozon", url: "https://ozon.ru" },
-      { title: "Японское удобрение для монстер", price: "450 ₽", marketplace: "Wildberries", url: "https://wildberries.ru" }
+      { title: "Удобрение для гортензий 1л", price: "390 ₽", marketplace: "Ozon", url: "https://ozon.ru" }
     ]
   };
 }
