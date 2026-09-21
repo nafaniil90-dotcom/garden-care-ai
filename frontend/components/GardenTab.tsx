@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, HeartPulse, AlertTriangle, ShieldCheck, Tag, Camera, MapPin, Trees, Home, Sparkles } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, HeartPulse, AlertTriangle, ShieldCheck, Tag, Camera, MapPin, Trees, Home, Trash2, RefreshCw } from "lucide-react";
 import { UserLocation } from "./LocationModal";
 
 export interface Plant {
@@ -39,11 +39,8 @@ export const GardenTab: React.FC<GardenTabProps> = ({
   const [mainCategory, setMainCategory] = useState<"outdoor" | "indoor">("outdoor");
   const [selectedSubZone, setSelectedSubZone] = useState<string>("Все на участке");
 
-  const outdoorZones = ["Все на участке", "Плодовый сад", "Клумбы & Альпинарий", "Теплица & Грядки", "Газон & Изгородь", "Карантин"];
-  const indoorZones = ["Все домашние", "Подоконник", "Гостиная", "Карантин"];
-
-  const [plants] = useState<Plant[]>([
-    // Accurate Photo URLs matching real CIS outdoor plants
+  // Default seed list for fresh demonstration
+  const defaultPlants: Plant[] = [
     {
       id: "p1",
       name: "Яблоня 'Антоновка'",
@@ -54,7 +51,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
       unit: "деревьев",
       status: "healthy",
       photo: "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80",
-      tags: ["Плодовое", "Зимостойкое"],
+      tags: ["Плодовое"],
       wateringIntervalDays: 7,
       lastWateredDaysAgo: 2,
       heightCm: 210,
@@ -62,166 +59,56 @@ export const GardenTab: React.FC<GardenTabProps> = ({
     },
     {
       id: "p2",
-      name: "Малина 'Полка'",
-      species: "Rubus idaeus 'Polka'",
-      zone: "Плодовый сад",
-      isOutdoor: true,
-      quantity: 10,
-      unit: "кустов",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1577069861033-55d04cec4ef5?w=500&q=80",
-      tags: ["Ягодник", "Урожайное"],
-      wateringIntervalDays: 3,
-      lastWateredDaysAgo: 1,
-      heightCm: 140,
-      requiredLux: "Яркий свет",
-    },
-    {
-      id: "p3",
-      name: "Туя 'Смарагд'",
-      species: "Thuja occidentalis 'Smaragd'",
-      zone: "Газон & Изгородь",
-      isOutdoor: true,
-      quantity: 6,
-      unit: "шт.",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1584479898061-15742e14f50d?w=500&q=80",
-      tags: ["Хвойное", "Живая изгородь"],
-      wateringIntervalDays: 5,
-      lastWateredDaysAgo: 3,
-      heightCm: 180,
-      requiredLux: "Солнце/Полутень",
-    },
-    {
-      id: "p4",
-      name: "Гортензия 'Фантом'",
-      species: "Hydrangea paniculata 'Phantom'",
+      name: "Гортензия метельчатая",
+      species: "Hydrangea paniculata",
       zone: "Клумбы & Альпинарий",
       isOutdoor: true,
       quantity: 3,
       unit: "куста",
-      status: "quarantine",
+      status: "healthy",
       photo: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=500&q=80",
-      tags: ["Цветущее", "Требует кислый грунт"],
+      tags: ["Цветущее"],
       wateringIntervalDays: 2,
       lastWateredDaysAgo: 1,
       heightCm: 90,
       requiredLux: "Рассеянный свет",
     },
-    {
-      id: "p5",
-      name: "Петуния ампельная",
-      species: "Petunia hybrida",
-      zone: "Клумбы & Альпинарий",
-      isOutdoor: true,
-      quantity: 12,
-      unit: "вазонов",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1520412099551-62b6bafeb5bb?w=500&q=80",
-      tags: ["Однолетник", "Яркое цветение"],
-      wateringIntervalDays: 1,
-      lastWateredDaysAgo: 0,
-      heightCm: 35,
-      requiredLux: "Прямое солнце",
-    },
-    {
-      id: "p6",
-      name: "Томаты 'Бычье сердце'",
-      species: "Solanum lycopersicum",
-      zone: "Теплица & Грядки",
-      isOutdoor: true,
-      quantity: 15,
-      unit: "кустов",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=500&q=80",
-      tags: ["Теплица", "Пасынкование"],
-      wateringIntervalDays: 2,
-      lastWateredDaysAgo: 1,
-      heightCm: 120,
-      requiredLux: "Тепличный свет",
-    },
-    {
-      id: "p7",
-      name: "Огурцы 'Кураж F1'",
-      species: "Cucumis sativus",
-      zone: "Теплица & Грядки",
-      isOutdoor: true,
-      quantity: 10,
-      unit: "кустов",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=500&q=80",
-      tags: ["Партенокарпик"],
-      wateringIntervalDays: 1,
-      lastWateredDaysAgo: 0,
-      heightCm: 160,
-      requiredLux: "Тепличный свет",
-    },
-    {
-      id: "p8",
-      name: "Роза 'Фламентанц'",
-      species: "Rosa 'Flamentanz'",
-      zone: "Клумбы & Альпинарий",
-      isOutdoor: true,
-      quantity: 2,
-      unit: "куста",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&q=80",
-      tags: ["Арка", "Обильное цветение"],
-      wateringIntervalDays: 4,
-      lastWateredDaysAgo: 2,
-      heightCm: 220,
-      requiredLux: "Солнечная сторона",
-    },
-    {
-      id: "p9",
-      name: "Смородина 'Добрыня'",
-      species: "Ribes nigrum",
-      zone: "Плодовый сад",
-      isOutdoor: true,
-      quantity: 4,
-      unit: "куста",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?w=500&q=80",
-      tags: ["Ягодник"],
-      wateringIntervalDays: 5,
-      lastWateredDaysAgo: 3,
-      heightCm: 110,
-      requiredLux: "Солнце/Полутень",
-    },
-    {
-      id: "p10",
-      name: "Газон дачный",
-      species: "Lolium perenne & Poa pratensis",
-      zone: "Газон & Изгородь",
-      isOutdoor: true,
-      quantity: 150,
-      unit: "кв.м",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1558904541-efa8c196b27e?w=500&q=80",
-      tags: ["Стрижка 1р/нед"],
-      wateringIntervalDays: 3,
-      lastWateredDaysAgo: 1,
-      heightCm: 6,
-      requiredLux: "Прямое солнце",
-    },
-    // Indoor plant
-    {
-      id: "p11",
-      name: "Фикус Бенджамина",
-      species: "Ficus benjamina",
-      zone: "Гостиная",
-      isOutdoor: false,
-      quantity: 1,
-      unit: "горшок",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1545241047-6083a3684587?w=500&q=80",
-      tags: ["Декоративное"],
-      wateringIntervalDays: 5,
-      lastWateredDaysAgo: 2,
-      heightCm: 55,
-      requiredLux: "1500 Lux",
-    },
-  ]);
+  ];
+
+  // Load user plants from localStorage so every user manages their own garden
+  const [plants, setPlants] = useState<Plant[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("user_garden_plants");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return defaultPlants;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user_garden_plants", JSON.stringify(plants));
+    }
+  }, [plants]);
+
+  const handleDeletePlant = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlants(plants.filter((p) => p.id !== id));
+  };
+
+  const handleClearGarden = () => {
+    if (confirm("Очистить все растения и начать создавать свой персональный сад с нуля?")) {
+      setPlants([]);
+    }
+  };
+
+  const handleResetDemo = () => {
+    setPlants(defaultPlants);
+  };
+
+  const outdoorZones = ["Все на участке", "Плодовый сад", "Клумбы & Альпинарий", "Теплица & Грядки", "Газон & Изгородь", "Карантин"];
+  const indoorZones = ["Все домашние", "Подоконник", "Гостиная", "Карантин"];
 
   const displayedPlants = plants.filter((p) => {
     const matchesCategory = mainCategory === "outdoor" ? p.isOutdoor : !p.isOutdoor;
@@ -254,7 +141,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
         </button>
       </div>
 
-      {/* Main Switcher: Garden Plot vs House */}
+      {/* Main Category Switcher */}
       <div className="grid grid-cols-2 gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl">
         <button
           onClick={() => {
@@ -300,13 +187,13 @@ export const GardenTab: React.FC<GardenTabProps> = ({
           </div>
           <button
             onClick={onOpenAddModal}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 rounded-2xl shadow-lg flex items-center gap-1 text-xs font-bold transition-transform active:scale-95"
+            className="bg-emerald-500 hover:bg-emerald-400 text-white px-3.5 py-2.5 rounded-2xl shadow-lg flex items-center gap-1.5 text-xs font-bold transition-transform active:scale-95"
           >
             <Plus className="w-4 h-4" /> Добавить
           </button>
         </div>
 
-        {/* Dynamic Category-Specific AI-Control Button (Single Clean Camera Icon) */}
+        {/* Dynamic Category AI-Control Button */}
         <button
           onClick={() => onOpenQuarantineModal(displayedPlants[0] || null)}
           className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-400 via-emerald-500 to-teal-400 hover:opacity-95 text-slate-950 font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all transform active:scale-98 border border-amber-300/50"
@@ -336,6 +223,21 @@ export const GardenTab: React.FC<GardenTabProps> = ({
         </div>
       </div>
 
+      {/* Toolbar: Reset / Clear Personal Garden */}
+      <div className="flex justify-between items-center text-[11px] px-1 text-slate-500">
+        <span>Показано: {displayedPlants.length} из {plants.length}</span>
+        <div className="flex gap-3">
+          <button onClick={handleClearGarden} className="text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+            <Trash2 className="w-3.5 h-3.5" /> Очистить сад
+          </button>
+          {plants.length === 0 && (
+            <button onClick={handleResetDemo} className="text-emerald-700 font-semibold flex items-center gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Подгрузить демо
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Sub-Zones Pill Filters */}
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         {(mainCategory === "outdoor" ? outdoorZones : indoorZones).map((zone) => {
@@ -359,80 +261,95 @@ export const GardenTab: React.FC<GardenTabProps> = ({
         })}
       </div>
 
-      {/* Plant Cards */}
+      {/* Plant Cards List */}
       <div className="space-y-3">
-        {displayedPlants.map((plant) => (
-          <div
-            key={plant.id}
-            className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 flex gap-3.5 items-center hover:shadow-md transition-shadow relative overflow-hidden"
-          >
-            {/* Photo & Quantity Badge */}
-            <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0">
-              <img src={plant.photo} alt={plant.name} className="w-full h-full object-cover" />
-              
-              <div className="absolute top-1 left-1 bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-black px-1.5 py-0.5 rounded-md border border-slate-700">
-                {plant.quantity} {plant.unit}
-              </div>
-
-              {plant.status === "quarantine" && (
-                <div className="absolute inset-0 bg-rose-950/50 backdrop-blur-[1px] flex items-center justify-center">
-                  <AlertTriangle className="w-7 h-7 text-rose-400 animate-bounce" />
+        {displayedPlants.length > 0 ? (
+          displayedPlants.map((plant) => (
+            <div
+              key={plant.id}
+              className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100 flex gap-3.5 items-center hover:shadow-md transition-shadow relative overflow-hidden group"
+            >
+              <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0">
+                <img src={plant.photo} alt={plant.name} className="w-full h-full object-cover" />
+                <div className="absolute top-1 left-1 bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-black px-1.5 py-0.5 rounded-md border border-slate-700">
+                  {plant.quantity} {plant.unit}
                 </div>
-              )}
-            </div>
-
-            {/* Information */}
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start gap-1">
-                <h3 className="font-bold text-slate-800 text-sm truncate">{plant.name}</h3>
-                {plant.status === "quarantine" ? (
-                  <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> В Карантине
-                  </span>
-                ) : (
-                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Норма
-                  </span>
+                {plant.status === "quarantine" && (
+                  <div className="absolute inset-0 bg-rose-950/50 backdrop-blur-[1px] flex items-center justify-center">
+                    <AlertTriangle className="w-7 h-7 text-rose-400 animate-bounce" />
+                  </div>
                 )}
               </div>
 
-              <p className="text-[11px] text-slate-400 italic truncate">{plant.species}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start gap-1">
+                  <h3 className="font-bold text-slate-800 text-sm truncate">{plant.name}</h3>
+                  <div className="flex items-center gap-1">
+                    {plant.status === "quarantine" ? (
+                      <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> В Карантине
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" /> Норма
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => handleDeletePlant(plant.id, e)}
+                      className="text-slate-300 hover:text-rose-600 p-1"
+                      title="Удалить растение"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
-                <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-600 font-medium">
-                  📍 {plant.zone}
-                </span>
-                <span className="text-slate-400">• {plant.heightCm} см</span>
-              </div>
+                <p className="text-[11px] text-slate-400 italic truncate">{plant.species}</p>
 
-              {/* Tags */}
-              <div className="flex gap-1 mt-1.5 overflow-x-auto">
-                {plant.tags.map((tag) => (
-                  <span key={tag} className="bg-emerald-50 text-emerald-800 text-[9px] font-semibold px-1.5 py-0.5 rounded">
-                    #{tag}
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                  <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-600 font-medium">
+                    📍 {plant.zone}
                   </span>
-                ))}
-              </div>
+                  <span className="text-slate-400">• {plant.heightCm} см</span>
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => onOpenGrowthLogModal(plant)}
-                  className="flex-1 py-1 text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-center"
-                >
-                  📈 Динамика
-                </button>
-                <button
-                  onClick={() => onOpenQuarantineModal(plant)}
-                  className="flex-1 py-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg flex items-center justify-center gap-1"
-                >
-                  <Camera className="w-3 h-3 text-emerald-600" />
-                  AI-Контроль
-                </button>
+                <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => onOpenGrowthLogModal(plant)}
+                    className="flex-1 py-1 text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-center"
+                  >
+                    📈 Динамика
+                  </button>
+                  <button
+                    onClick={() => onOpenQuarantineModal(plant)}
+                    className="flex-1 py-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg flex items-center justify-center gap-1"
+                  >
+                    <Camera className="w-3 h-3 text-emerald-600" />
+                    AI-Контроль
+                  </button>
+                </div>
               </div>
             </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-3xl p-8 text-center space-y-3 border border-slate-100 shadow-sm">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto">
+              <Plus className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Ваш сад пока пуст</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Нажмите кнопку ниже, чтобы сфотографировать и добавить первое растение в свой личный сад!
+              </p>
+            </div>
+            <button
+              onClick={onOpenAddModal}
+              className="px-4 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200"
+            >
+              + Добавить свое первое растение
+            </button>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
