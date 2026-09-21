@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, HeartPulse, AlertTriangle, ShieldCheck, Tag, Camera, MapPin, Trees, Home, Trash2, RefreshCw } from "lucide-react";
+import { Plus, HeartPulse, AlertTriangle, ShieldCheck, Camera, MapPin, Trees, Home, Trash2, RefreshCw } from "lucide-react";
 import { UserLocation } from "./LocationModal";
 
 export interface Plant {
@@ -98,7 +98,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
   };
 
   const handleClearGarden = () => {
-    if (confirm("Очистить все растения и начать создавать свой персональный сад с нуля?")) {
+    if (confirm("Очистить текущие растения и начать свой собственный сад с нуля?")) {
       setPlants([]);
     }
   };
@@ -141,7 +141,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
         </button>
       </div>
 
-      {/* Main Category Switcher */}
+      {/* Main Switcher */}
       <div className="grid grid-cols-2 gap-1.5 bg-slate-200/80 p-1.5 rounded-2xl">
         <button
           onClick={() => {
@@ -185,12 +185,22 @@ export const GardenTab: React.FC<GardenTabProps> = ({
               {mainCategory === "outdoor" ? "Мой Сад & Дача" : "Комнатные Цветы"}
             </h1>
           </div>
-          <button
-            onClick={onOpenAddModal}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-3.5 py-2.5 rounded-2xl shadow-lg flex items-center gap-1.5 text-xs font-bold transition-transform active:scale-95"
-          >
-            <Plus className="w-4 h-4" /> Добавить
-          </button>
+          
+          <div className="flex gap-1.5">
+            <button
+              onClick={handleClearGarden}
+              className="bg-emerald-900/80 hover:bg-rose-700 text-white px-2.5 py-2.5 rounded-2xl border border-emerald-600/50 shadow flex items-center gap-1 text-[11px] font-semibold transition-colors"
+              title="Очистить сад"
+            >
+              <Trash2 className="w-4 h-4 text-rose-300" />
+            </button>
+            <button
+              onClick={onOpenAddModal}
+              className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2.5 rounded-2xl shadow-lg flex items-center gap-1 text-xs font-bold transition-transform active:scale-95"
+            >
+              <Plus className="w-4 h-4" /> Добавить
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Category AI-Control Button */}
@@ -223,19 +233,14 @@ export const GardenTab: React.FC<GardenTabProps> = ({
         </div>
       </div>
 
-      {/* Toolbar: Reset / Clear Personal Garden */}
+      {/* Toolbar */}
       <div className="flex justify-between items-center text-[11px] px-1 text-slate-500">
         <span>Показано: {displayedPlants.length} из {plants.length}</span>
-        <div className="flex gap-3">
-          <button onClick={handleClearGarden} className="text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
-            <Trash2 className="w-3.5 h-3.5" /> Очистить сад
+        {plants.length === 0 && (
+          <button onClick={handleResetDemo} className="text-emerald-700 font-semibold flex items-center gap-1">
+            <RefreshCw className="w-3.5 h-3.5" /> Загрузить демо-сад
           </button>
-          {plants.length === 0 && (
-            <button onClick={handleResetDemo} className="text-emerald-700 font-semibold flex items-center gap-1">
-              <RefreshCw className="w-3.5 h-3.5" /> Подгрузить демо
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Sub-Zones Pill Filters */}
