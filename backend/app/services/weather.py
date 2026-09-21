@@ -20,13 +20,13 @@ async def get_weather_data(city: str = "Брест", lat: Optional[float] = None
                 res = await client.get(url, timeout=5.0)
                 if res.status_code == 200:
                     data = res.json()
-                    temp = data["main"]["temp"]
+                    temp = round(data["main"]["temp"], 1)
                     weather_main = data.get("weather", [{}])[0].get("main", "").lower()
                     description = data.get("weather", [{}])[0].get("description", "").capitalize()
                     
                     is_rainy = "rain" in data or any(w in weather_main for w in ["rain", "drizzle", "thunderstorm"])
                     is_hot_sun = temp >= 25.0 and "clear" in weather_main
-                    is_frost_risk = temp <= 2.0
+                    is_frost_risk = temp <= 4.0
 
                     return {
                         "temp_c": temp,
@@ -39,10 +39,10 @@ async def get_weather_data(city: str = "Брест", lat: Optional[float] = None
         except Exception as e:
             logger.warning(f"Weather API request error: {e}")
 
-    # Fallback micro-location weather response for demonstration
+    # Realistic seasonal autumn weather response for CIS (Late September / October)
     return {
-        "temp_c": 21.5,
-        "description": "Умеренный дождь в районе участка",
+        "temp_c": 11.5,
+        "description": "Осенняя прохлада, облачно с прояснениями",
         "is_rainy": True,
         "is_hot_sun": False,
         "is_frost_risk": False,
