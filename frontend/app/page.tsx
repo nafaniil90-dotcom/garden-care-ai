@@ -23,7 +23,7 @@ export default function Home() {
     isCustomPin: true,
   });
 
-  // Default seed list for demonstration
+  // Default seed list for fresh demonstration
   const defaultPlants: Plant[] = [
     {
       id: "p1",
@@ -59,12 +59,34 @@ export default function Home() {
     },
   ];
 
-  // User Garden Plants State with localStorage persistence
+  const sanitizePlant = (p: any): Plant => ({
+    id: p.id || "p_" + Math.random().toString(36).substr(2, 9),
+    name: p.name || "Растение",
+    species: p.species || "Сорт не определен",
+    zone: p.zone || "Плодовый сад",
+    isOutdoor: typeof p.isOutdoor === "boolean" ? p.isOutdoor : true,
+    quantity: Number(p.quantity) || 1,
+    unit: p.unit || "шт.",
+    status: p.status === "quarantine" ? "quarantine" : "healthy",
+    photo: p.photo || "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80",
+    tags: Array.isArray(p.tags) ? p.tags : ["Моя посадка"],
+    wateringIntervalDays: Number(p.wateringIntervalDays) || 4,
+    lastWateredDaysAgo: Number(p.lastWateredDaysAgo) || 0,
+    heightCm: Number(p.heightCm) || 40,
+    requiredLux: p.requiredLux || "Прямое солнце",
+  });
+
+  // User Garden Plants State with localStorage persistence and safe sanitizer
   const [plants, setPlants] = useState<Plant[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("user_garden_plants");
       if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed.map(sanitizePlant);
+          }
+        } catch (e) {}
       }
     }
     return defaultPlants;
@@ -77,7 +99,8 @@ export default function Home() {
   }, [plants]);
 
   const handleAddPlant = (newPlant: Plant) => {
-    setPlants((prev) => [newPlant, ...prev]);
+    const cleanPlant = sanitizePlant(newPlant);
+    setPlants((prev) => [cleanPlant, ...prev]);
   };
 
   const handleDeletePlant = (id: string) => {

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
-    logger.info("Initializing SQLite database...")
+    logger.info("Initializing database...")
     await init_db()
     
     # Mount bot router
@@ -26,10 +26,11 @@ async def lifespan(app: FastAPI):
     # Start bot polling in background task (non-blocking)
     bot_task = None
     try:
+        await bot.delete_webhook(drop_pending_updates=True)
         bot_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
         logger.info("Aiogram 3 bot polling task initiated.")
     except Exception as e:
-        logger.warning(f"Bot failed to start polling (check BOT_TOKEN in .env): {e}")
+        logger.warning(f"Bot polling skipped or conflict handled: {e}")
 
     yield
 
