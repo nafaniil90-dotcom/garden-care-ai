@@ -94,7 +94,21 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("user_garden_plants", JSON.stringify(plants));
+      try {
+        localStorage.setItem("user_garden_plants", JSON.stringify(plants));
+      } catch (err) {
+        console.warn("Could not save garden plants to localStorage (Quota exceeded or restricted):", err);
+        // Fallback: strip heavy base64 photos if quota exceeded
+        try {
+          const lightPlants = plants.map((p) => ({
+            ...p,
+            photo: p.photo.startsWith("data:") ? "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80" : p.photo,
+          }));
+          localStorage.setItem("user_garden_plants", JSON.stringify(lightPlants));
+        } catch (e) {
+          console.warn("Failed to store even stripped plants:", e);
+        }
+      }
     }
   }, [plants]);
 

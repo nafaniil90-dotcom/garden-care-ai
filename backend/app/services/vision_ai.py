@@ -54,17 +54,22 @@ async def analyze_plant_vision(base64_image: str) -> dict:
         }
         """
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[prompt, pil_img]
-        )
+        try:
+          response = client.models.generate_content(
+              model="gemini-2.0-flash",
+              contents=[prompt, pil_img]
+          )
+        except Exception as model_err:
+          logger.warning(f"gemini-2.0-flash failed ({model_err}), trying fallback gemini-1.5-flash")
+          response = client.models.generate_content(
+              model="gemini-1.5-flash",
+              contents=[prompt, pil_img]
+          )
 
         # Parse JSON response
         cleaned_text = response.text.strip()
-        if cleaned_text.startswith("```json"):
-            cleaned_text = cleaned_text[7:]
-        if cleaned_text.endswith("```"):
-            cleaned_text = cleaned_text[:-3]
+        if "```" in cleaned_text:
+            cleaned_text = cleaned_text.replace("```json", "").replace("```", "")
 
         parsed = json.loads(cleaned_text.strip())
         logger.info(f"Gemini Vision successfully identified plant: {parsed.get('species')}")

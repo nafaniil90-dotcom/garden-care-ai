@@ -23,14 +23,17 @@ async def lifespan(app: FastAPI):
     # Mount bot router
     dp.include_router(bot_router)
     
-    # Start bot polling in background task (non-blocking)
+    # Start bot polling in background task (non-blocking) only if valid token
     bot_task = None
-    try:
-        await bot.delete_webhook(drop_pending_updates=True)
-        bot_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
-        logger.info("Aiogram 3 bot polling task initiated.")
-    except Exception as e:
-        logger.warning(f"Bot polling skipped or conflict handled: {e}")
+    if bot.token and "mock_token" not in bot.token:
+        try:
+            await bot.delete_webhook(drop_pending_updates=True)
+            bot_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
+            logger.info("Aiogram 3 bot polling task initiated.")
+        except Exception as e:
+            logger.warning(f"Bot polling skipped or conflict handled: {e}")
+    else:
+        logger.info("Bot token not provided or is mock token, skipping Telegram polling task.")
 
     yield
 

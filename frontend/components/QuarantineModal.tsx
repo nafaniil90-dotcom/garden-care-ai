@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, AlertTriangle, ShieldCheck, Sparkles, Loader2, ExternalLink, CheckCircle2, Pill, Camera, Image as ImageIcon } from "lucide-react";
 import { Plant } from "./GardenTab";
 import { diagnosePlantPhoto } from "../lib/api";
+import { compressImage } from "../lib/imageUtils";
 
 interface QuarantineModalProps {
   plant: Plant | null;
@@ -51,15 +52,21 @@ export const QuarantineModal: React.FC<QuarantineModalProps> = ({ plant, onClose
     setDiagnosisData(res);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      handlePhotoSelected(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressImage(file, 800, 0.7);
+      handlePhotoSelected(compressed);
+    } catch (err) {
+      console.warn("Quarantine image compression error:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handlePhotoSelected(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleReset = () => {

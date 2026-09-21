@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Camera, Sparkles, Loader2, CheckCircle2, HelpCircle } from "lucide-react";
+import { X, Camera, Sparkles, Loader2 } from "lucide-react";
 import { diagnosePlantPhoto } from "../lib/api";
+import { compressImage } from "../lib/imageUtils";
 
 interface AddPlantModalProps {
   isOpen: boolean;
@@ -18,21 +19,34 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState("шт.");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
   const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhoto(reader.result as string);
-      setAiStatusMessage(null);
-    };
-    reader.readAsDataURL(file);
+    setIsCompressing(true);
+    setAiStatusMessage(null);
+
+    try {
+      // Compress photo client-side to max 800px & ~80KB JPEG
+      const compressedBase64 = await compressImage(file, 800, 0.7);
+      setPhoto(compressedBase64);
+    } catch (err) {
+      console.warn("Image compression error:", err);
+      // Fallback: read directly if canvas fails
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const handleRecognizePhoto = async () => {
@@ -40,15 +54,19 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
     setIsAiAnalyzing(true);
     setAiStatusMessage(null);
 
-    const res = await diagnosePlantPhoto(photo);
-    setIsAiAnalyzing(false);
-
-    if (res && res.species && !res.species.includes("Ошибка")) {
-      setName(res.species.split(" ")[0]);
-      setSpecies(res.species);
-      setAiStatusMessage(`Распознано: ${res.species}`);
-    } else {
-      setAiStatusMessage("Сорт не удалось распознать автоматически. Введите имя вручную.");
+    try {
+      const res = await diagnosePlantPhoto(photo);
+      if (res && res.species && !res.species.includes("Ошибка")) {
+        setName(res.species.split(" ")[0]);
+        setSpecies(res.species);
+        setAiStatusMessage(`Распознано AI: ${res.species}`);
+      } else {
+        setAiStatusMessage("Сорт не удалось распознать автоматически. Введите название вручную.");
+      }
+    } catch (e) {
+      setAiStatusMessage("Не удалось связаться с AI-сервером. Заполните название вручную.");
+    } finally {
+      setIsAiAnalyzing(false);
     }
   };
 
@@ -107,7 +125,12 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Фотография посадки</label>
             <div className="border border-slate-200 bg-slate-50 rounded-2xl p-3 text-center space-y-2">
-              {photo ? (
+              {isCompressing ? (
+                <div className="py-6 text-center space-y-2">
+                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin mx-auto" />
+                  <p className="text-xs text-slate-600 font-semibold">Оптимизация снимка...</p>
+                </div>
+              ) : photo ? (
                 <div className="space-y-2">
                   <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
                     <img src={photo} alt="Preview" className="w-full h-full object-cover" />
@@ -132,7 +155,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
                   >
                     {isAiAnalyzing ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Определение сорта...
+                        <Loader2 className="w-4 h-4 animate-spin" /> Определение сорта AI...
                       </>
                     ) : (
                       <>
@@ -145,7 +168,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
                 <label className="cursor-pointer block py-3">
                   <Camera className="w-7 h-7 text-emerald-600 mx-auto mb-1 animate-bounce" />
                   <span className="text-xs font-bold text-slate-800 block">Загрузить фото растения</span>
-                  <span className="text-[10px] text-slate-400">Из галереи или с камеры телефона</span>
+                  <span className="text-[10px] text-slate-400">Сохраняется на вашем телефоне</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               )}
