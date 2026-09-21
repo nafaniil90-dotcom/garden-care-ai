@@ -1,55 +1,52 @@
 "use client";
 
 import React, { useState } from "react";
-import { Calendar as CalendarIcon, CloudRain, Moon, CheckCircle2, Thermometer, Umbrella, Sparkles } from "lucide-react";
+import { Calendar as CalendarIcon, CloudRain, Moon, CheckCircle2, Thermometer, Plus } from "lucide-react";
 import { UserLocation } from "./LocationModal";
+import { Plant } from "./GardenTab";
 
 interface CalendarTabProps {
   currentLocation: UserLocation;
+  plants: Plant[];
 }
 
-export const CalendarTab: React.FC<CalendarTabProps> = ({ currentLocation }) => {
-  const [tasks, setTasks] = useState([
-    {
-      id: "t1",
-      plant: "Яблоня 'Антоновка' (5 деревьев)",
-      action: "Осенняя фосфорно-калийная подкормка под перекопку",
-      due: "Завтра (до 18:00)",
-      completed: false,
-      isOutdoor: true,
-      weatherReason: "🍂 Осенняя подготовка к зимовке",
-    },
-    {
-      id: "t2",
-      plant: "Петуния ампельная (12 вазонов)",
-      action: "Полив уличных вазонов отменен из-за осенних осадков",
+export const CalendarTab: React.FC<CalendarTabProps> = ({ currentLocation, plants }) => {
+  // Dynamically generate tasks based strictly on the user's actual garden plants
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+
+  const generatedTasks = plants.map((plant) => {
+    let action = `Сезонный уход и осмотр`;
+    let weatherReason = null;
+
+    if (plant.name.toLowerCase().includes("яблоня") || plant.name.toLowerCase().includes("дерево")) {
+      action = `Осеннее мульчирование приствольного круга`;
+      weatherReason = `🍂 Подготовка к зимовке`;
+    } else if (plant.name.toLowerCase().includes("гортензия") || plant.name.toLowerCase().includes("роза")) {
+      action = `Проверка влажности грунта и укрытие на ночь`;
+      weatherReason = `❄️ Осенняя прохлада +11.5°C`;
+    } else if (plant.name.toLowerCase().includes("газон") || plant.name.toLowerCase().includes("петуния")) {
+      action = `Полив отменен из-за осадков в районе участка`;
+      weatherReason = `🌧️ Осадки на участке`;
+    } else if (plant.name.toLowerCase().includes("томат") || plant.name.toLowerCase().includes("огурец")) {
+      action = `Сбор урожая и проветривание теплицы`;
+    }
+
+    return {
+      id: `task_${plant.id}`,
+      plantName: `${plant.name} (${plant.quantity} ${plant.unit})`,
+      action,
       due: "Сегодня",
-      completed: true,
-      isOutdoor: true,
-      weatherReason: "🌧️ Влажность почвы в норме после дождей",
-    },
-    {
-      id: "t3",
-      plant: "Томаты 'Бычье сердце' (Теплица)",
-      action: "Сбор финального урожая и зачистка ботвы",
-      due: "Сегодня",
-      completed: false,
-      isOutdoor: true,
-      weatherReason: null,
-    },
-    {
-      id: "t4",
-      plant: "Гортензия метельчатая (Карантин)",
-      action: "Мульчирование приствольного круга сосновой корой",
-      due: "Через 2 дня",
-      completed: false,
-      isOutdoor: true,
-      weatherReason: null,
-    },
-  ]);
+      isCompleted: completedTaskIds.includes(`task_${plant.id}`),
+      weatherReason,
+    };
+  });
 
   const toggleTask = (id: string) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    if (completedTaskIds.includes(id)) {
+      setCompletedTaskIds(completedTaskIds.filter((tId) => tId !== id));
+    } else {
+      setCompletedTaskIds([...completedTaskIds, id]);
+    }
   };
 
   return (
@@ -85,7 +82,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ currentLocation }) => 
           <div className="space-y-0.5">
             <span className="font-extrabold block text-sky-900">🌧️ Осенние осадки (+11.5°C)</span>
             <p className="text-[11px] text-sky-800 leading-snug">
-              Полив уличного газона и кустарников временно отменен. Грунт оптимально увлежнен.
+              Полив уличного газона и кустарников временно отменен. Грунт оптимально увлажнен.
             </p>
           </div>
         </div>
@@ -116,51 +113,64 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ currentLocation }) => 
         </div>
       </div>
 
-      {/* Tasks List */}
+      {/* Dynamic Tasks List Tied strictly to user's actual garden plants */}
       <div className="space-y-3">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Задачи на участке</h2>
-        <div className="space-y-2">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                task.completed
-                  ? "bg-slate-50 border-slate-200 opacity-60"
-                  : "bg-white border-slate-100 shadow-sm"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <button
-                  onClick={() => toggleTask(task.id)}
-                  className={`p-1 rounded-full transition-colors ${
-                    task.completed ? "text-emerald-600" : "text-slate-300 hover:text-emerald-500"
-                  }`}
-                >
-                  <CheckCircle2 className={`w-6 h-6 ${task.completed ? "fill-emerald-100 stroke-emerald-600" : ""}`} />
-                </button>
+        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+          <span>Задачи по вашим растениям ({generatedTasks.length})</span>
+        </h2>
 
-                <div className="min-w-0">
-                  <div className={`font-bold text-xs ${task.completed ? "line-through text-slate-500" : "text-slate-800"}`}>
-                    {task.plant}
+        {generatedTasks.length > 0 ? (
+          <div className="space-y-2">
+            {generatedTasks.map((task) => (
+              <div
+                key={task.id}
+                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                  task.isCompleted
+                    ? "bg-slate-50 border-slate-200 opacity-60"
+                    : "bg-white border-slate-100 shadow-sm"
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    onClick={() => toggleTask(task.id)}
+                    className={`p-1 rounded-full transition-colors ${
+                      task.isCompleted ? "text-emerald-600" : "text-slate-300 hover:text-emerald-500"
+                    }`}
+                  >
+                    <CheckCircle2 className={`w-6 h-6 ${task.isCompleted ? "fill-emerald-100 stroke-emerald-600" : ""}`} />
+                  </button>
+
+                  <div className="min-w-0">
+                    <div className={`font-bold text-xs ${task.isCompleted ? "line-through text-slate-500" : "text-slate-800"}`}>
+                      {task.plantName}
+                    </div>
+                    <div className="text-[11px] text-slate-500 truncate">{task.action}</div>
+                    
+                    {task.weatherReason && (
+                      <span className="inline-flex items-center gap-1 text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded font-bold mt-1">
+                        {task.weatherReason}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[11px] text-slate-500 truncate">{task.action}</div>
-                  
-                  {task.weatherReason && (
-                    <span className="inline-flex items-center gap-1 text-[9px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded font-bold mt-1">
-                      {task.weatherReason}
-                    </span>
-                  )}
+                </div>
+
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                    {task.due}
+                  </span>
                 </div>
               </div>
-
-              <div className="text-right flex-shrink-0">
-                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
-                  {task.due}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl p-6 text-center space-y-2 border border-slate-100 shadow-sm">
+            <CalendarIcon className="w-8 h-8 text-teal-600 mx-auto opacity-80" />
+            <h3 className="font-bold text-slate-800 text-xs">У вас пока нет задач в календаре</h3>
+            <p className="text-[11px] text-slate-400">
+              Добавьте свои первые растения во вкладке «Сад», чтобы сформировать персональный график ухода.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

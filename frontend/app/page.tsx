@@ -15,13 +15,84 @@ import { LocationModal, UserLocation } from "../components/LocationModal";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>("garden");
 
-  // User Geolocation State (City or Map Pin coordinates)
+  // User Geolocation State
   const [currentLocation, setCurrentLocation] = useState<UserLocation>({
     name: "Брест (Участок)",
     lat: 52.0976,
     lon: 23.7341,
     isCustomPin: true,
   });
+
+  // Default seed list for demonstration
+  const defaultPlants: Plant[] = [
+    {
+      id: "p1",
+      name: "Яблоня 'Антоновка'",
+      species: "Malus domestica 'Antonovka'",
+      zone: "Плодовый сад",
+      isOutdoor: true,
+      quantity: 5,
+      unit: "деревьев",
+      status: "healthy",
+      photo: "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80",
+      tags: ["Плодовое"],
+      wateringIntervalDays: 7,
+      lastWateredDaysAgo: 2,
+      heightCm: 210,
+      requiredLux: "Прямое солнце",
+    },
+    {
+      id: "p2",
+      name: "Гортензия метельчатая",
+      species: "Hydrangea paniculata",
+      zone: "Клумбы & Альпинарий",
+      isOutdoor: true,
+      quantity: 3,
+      unit: "куста",
+      status: "healthy",
+      photo: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=500&q=80",
+      tags: ["Цветущее"],
+      wateringIntervalDays: 2,
+      lastWateredDaysAgo: 1,
+      heightCm: 90,
+      requiredLux: "Рассеянный свет",
+    },
+  ];
+
+  // User Garden Plants State with localStorage persistence
+  const [plants, setPlants] = useState<Plant[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("user_garden_plants");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return defaultPlants;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user_garden_plants", JSON.stringify(plants));
+    }
+  }, [plants]);
+
+  const handleAddPlant = (newPlant: Plant) => {
+    setPlants((prev) => [newPlant, ...prev]);
+  };
+
+  const handleDeletePlant = (id: string) => {
+    setPlants((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleClearGarden = () => {
+    if (confirm("Очистить текущие растения и начать свой собственный сад с нуля?")) {
+      setPlants([]);
+    }
+  };
+
+  const handleResetDemo = () => {
+    setPlants(defaultPlants);
+  };
 
   // Modals state
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -39,6 +110,10 @@ export default function Home() {
       <main>
         {activeTab === "garden" && (
           <GardenTab
+            plants={plants}
+            onDeletePlant={handleDeletePlant}
+            onClearGarden={handleClearGarden}
+            onResetDemo={handleResetDemo}
             currentLocation={currentLocation}
             onOpenLocationModal={() => setIsLocationModalOpen(true)}
             onOpenAddModal={() => setIsAddModalOpen(true)}
@@ -47,7 +122,9 @@ export default function Home() {
           />
         )}
         {activeTab === "photometer" && <PhotometerTab />}
-        {activeTab === "calendar" && <CalendarTab currentLocation={currentLocation} />}
+        {activeTab === "calendar" && (
+          <CalendarTab currentLocation={currentLocation} plants={plants} />
+        )}
         {activeTab === "knowledge" && <KnowledgeTab />}
       </main>
 
@@ -62,7 +139,7 @@ export default function Home() {
       <AddPlantModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onPlantAdded={() => {}}
+        onPlantAdded={handleAddPlant}
       />
 
       <QuarantineModal

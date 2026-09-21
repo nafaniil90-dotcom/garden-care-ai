@@ -19,61 +19,74 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
   const [unit, setUnit] = useState("шт.");
   const [photo, setPhoto] = useState<string | null>(null);
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
+  const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      setPhoto(base64);
-
-      // AI auto-identify
-      setIsAiAnalyzing(true);
-      const res = await diagnosePlantPhoto(base64);
-      setIsAiAnalyzing(false);
-
-      if (res) {
-        setAiSuggestions(res);
-        if (!name) setName(res.species.split(" ")[0]);
-        setSpecies(res.species);
-      }
+    reader.onloadend = () => {
+      setPhoto(reader.result as string);
+      setAiStatusMessage(null);
     };
     reader.readAsDataURL(file);
   };
 
+  const handleRecognizePhoto = async () => {
+    if (!photo) return;
+    setIsAiAnalyzing(true);
+    setAiStatusMessage(null);
+
+    const res = await diagnosePlantPhoto(photo);
+    setIsAiAnalyzing(false);
+
+    if (res && res.species && !res.species.includes("Ошибка")) {
+      setName(res.species.split(" ")[0]);
+      setSpecies(res.species);
+      setAiStatusMessage(`Распознано: ${res.species}`);
+    } else {
+      setAiStatusMessage("Сорт не удалось распознать автоматически. Введите имя вручную.");
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    if (!name.trim()) return;
 
     const newPlant = {
       id: "p_" + Date.now(),
-      name,
-      species: species || "Сорт не определен",
+      name: name.trim(),
+      species: species.trim() || "Сорт не определен",
       zone,
       isOutdoor,
       quantity: Number(quantity) || 1,
       unit: unit || "шт.",
       status: "healthy",
       photo: photo || "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80",
-      tags: ["Новое на участке"],
+      tags: ["Моя посадка"],
       wateringIntervalDays: 4,
       lastWateredDaysAgo: 0,
-      heightCm: 50,
-      requiredLux: aiSuggestions?.care_recommendations?.light || "Прямое солнце",
+      heightCm: 40,
+      requiredLux: "Прямое солнце",
     };
 
     onPlantAdded(newPlant);
+    
+    // Reset form
+    setName("");
+    setSpecies("");
+    setPhoto(null);
+    setAiStatusMessage(null);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-0 sm:p-4">
       <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="flex justify-between items-center pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="bg-emerald-100 p-2 rounded-xl text-emerald-700">
@@ -81,7 +94,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
             </div>
             <div>
               <h2 className="font-bold text-slate-800 text-sm">Добавить растение на участок</h2>
-              <p className="text-[11px] text-slate-400">Учет количества и авто-определение сорта</p>
+              <p className="text-[11px] text-slate-400">Ручной ввод или AI-распознавание</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
@@ -90,90 +103,98 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Photo & Auto-Identify trigger */}
+          {/* Photo container */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Фотография посадки</label>
-            <div className="relative border-2 border-dashed border-emerald-200 bg-emerald-50/50 rounded-2xl p-3 text-center hover:bg-emerald-50 transition-colors">
+            <div className="border border-slate-200 bg-slate-50 rounded-2xl p-3 text-center space-y-2">
               {photo ? (
-                <div className="relative w-full h-32 rounded-xl overflow-hidden">
-                  <img src={photo} alt="Preview" className="w-full h-full object-cover" />
+                <div className="space-y-2">
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200">
+                    <img src={photo} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhoto(null);
+                        setAiStatusMessage(null);
+                      }}
+                      className="absolute top-2 right-2 bg-slate-900/80 text-white p-1 rounded-full shadow-md"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Optional AI Recognition Trigger */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setPhoto(null);
-                      setAiSuggestions(null);
-                    }}
-                    className="absolute top-2 right-2 bg-rose-600 text-white p-1 rounded-full shadow-md"
+                    onClick={handleRecognizePhoto}
+                    disabled={isAiAnalyzing}
+                    className="w-full py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
                   >
-                    <X className="w-4 h-4" />
+                    {isAiAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Определение сорта...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 text-amber-300" /> Распознать сорт по фото
+                      </>
+                    )}
                   </button>
                 </div>
               ) : (
-                <label className="cursor-pointer block py-2">
+                <label className="cursor-pointer block py-3">
                   <Camera className="w-7 h-7 text-emerald-600 mx-auto mb-1 animate-bounce" />
-                  <span className="text-xs font-bold text-emerald-900 block">Загрузить фото из галереи или с камеры</span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full mt-1">
-                    <Sparkles className="w-3 h-3 text-amber-500" /> ✨ Определить сорт по фото
-                  </span>
+                  <span className="text-xs font-bold text-slate-800 block">Загрузить фото растения</span>
+                  <span className="text-[10px] text-slate-400">Из галереи или с камеры телефона</span>
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               )}
-
-              {isAiAnalyzing && (
-                <div className="absolute inset-0 bg-white/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-1.5">
-                  <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
-                  <span className="text-xs font-bold text-emerald-900 flex items-center gap-1">
-                    <Sparkles className="w-4 h-4 text-amber-500 animate-spin" /> AI определяем вид и сорт...
-                  </span>
-                </div>
-              )}
             </div>
+
+            {aiStatusMessage && (
+              <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 p-2 rounded-xl border border-emerald-200 mt-1.5">
+                {aiStatusMessage}
+              </p>
+            )}
           </div>
 
-          {/* AI Suggestions Badge */}
-          {aiSuggestions && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-xs text-emerald-900 space-y-0.5">
-              <div className="font-extrabold flex items-center gap-1 text-emerald-900">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                Распознано: {aiSuggestions.species}
-              </div>
-            </div>
-          )}
-
-          {/* Fields */}
+          {/* Plant Name input with focus select-all */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Название культуры</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Название культуры *</label>
             <input
               type="text"
               required
-              placeholder="Например: Яблоня 'Антоновка' или Малина"
+              placeholder="Например: Гортензия, Яблоня или Петуния"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+              onFocus={(e) => e.target.select()}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
             />
           </div>
 
+          {/* Species / Variety input */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="text-xs font-semibold text-slate-700">Вид / Сорт</label>
               <button
                 type="button"
                 onClick={() => setSpecies("Сорт не определен")}
-                className="text-[10px] text-slate-400 hover:text-slate-600 flex items-center gap-0.5"
+                className="text-[10px] text-emerald-700 hover:text-emerald-800 font-semibold"
               >
-                <HelpCircle className="w-3 h-3" /> Не знаю сорт
+                Не знаю сорт
               </button>
             </div>
             <input
               type="text"
-              placeholder="Например: Malus domestica 'Antonovka' (или опустите)"
+              placeholder="Например: Hydrangea paniculata (необязательно)"
               value={species}
               onChange={(e) => setSpecies(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+              onFocus={(e) => e.target.select()}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white"
             />
           </div>
 
-          {/* Quantity & Unit Row */}
+          {/* Quantity and Unit */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Количество</label>
@@ -182,7 +203,8 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white"
               />
             </div>
             <div>
@@ -190,7 +212,7 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
               >
                 <option value="шт.">шт.</option>
                 <option value="кустов">кустов</option>
@@ -202,13 +224,16 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
-          {/* Sub-zone select */}
+          {/* Zone */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Зона участка</label>
             <select
               value={zone}
-              onChange={(e) => setZone(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+              onChange={(e) => {
+                setZone(e.target.value);
+                setIsOutdoor(!["Подоконник", "Гостиная"].includes(e.target.value));
+              }}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
             >
               <option value="Плодовый сад">Плодовый сад</option>
               <option value="Клумбы & Альпинарий">Клумбы & Альпинарий</option>
@@ -221,9 +246,9 @@ export const AddPlantModal: React.FC<AddPlantModalProps> = ({ isOpen, onClose, o
 
           <button
             type="submit"
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-200 transition-all active:scale-98"
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-200 transition-all active:scale-98"
           >
-            Сохранить в инвентарь участка
+            + Добавить в мой сад
           </button>
         </form>
       </div>

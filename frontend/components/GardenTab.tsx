@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Plus, HeartPulse, AlertTriangle, ShieldCheck, Camera, MapPin, Trees, Home, Trash2, RefreshCw } from "lucide-react";
 import { UserLocation } from "./LocationModal";
 
@@ -22,14 +22,22 @@ export interface Plant {
 }
 
 interface GardenTabProps {
+  plants: Plant[];
+  onDeletePlant: (id: string) => void;
+  onClearGarden: () => void;
+  onResetDemo: () => void;
   currentLocation: UserLocation;
   onOpenLocationModal: () => void;
   onOpenAddModal: () => void;
-  onOpenQuarantineModal: (plant: Plant) => void;
+  onOpenQuarantineModal: (plant: Plant | null) => void;
   onOpenGrowthLogModal: (plant: Plant) => void;
 }
 
 export const GardenTab: React.FC<GardenTabProps> = ({
+  plants,
+  onDeletePlant,
+  onClearGarden,
+  onResetDemo,
   currentLocation,
   onOpenLocationModal,
   onOpenAddModal,
@@ -38,74 +46,6 @@ export const GardenTab: React.FC<GardenTabProps> = ({
 }) => {
   const [mainCategory, setMainCategory] = useState<"outdoor" | "indoor">("outdoor");
   const [selectedSubZone, setSelectedSubZone] = useState<string>("Все на участке");
-
-  // Default seed list for fresh demonstration
-  const defaultPlants: Plant[] = [
-    {
-      id: "p1",
-      name: "Яблоня 'Антоновка'",
-      species: "Malus domestica 'Antonovka'",
-      zone: "Плодовый сад",
-      isOutdoor: true,
-      quantity: 5,
-      unit: "деревьев",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1567306301408-9b74779a11af?w=500&q=80",
-      tags: ["Плодовое"],
-      wateringIntervalDays: 7,
-      lastWateredDaysAgo: 2,
-      heightCm: 210,
-      requiredLux: "Прямое солнце",
-    },
-    {
-      id: "p2",
-      name: "Гортензия метельчатая",
-      species: "Hydrangea paniculata",
-      zone: "Клумбы & Альпинарий",
-      isOutdoor: true,
-      quantity: 3,
-      unit: "куста",
-      status: "healthy",
-      photo: "https://images.unsplash.com/photo-1508610048659-a06b669e3321?w=500&q=80",
-      tags: ["Цветущее"],
-      wateringIntervalDays: 2,
-      lastWateredDaysAgo: 1,
-      heightCm: 90,
-      requiredLux: "Рассеянный свет",
-    },
-  ];
-
-  // Load user plants from localStorage so every user manages their own garden
-  const [plants, setPlants] = useState<Plant[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("user_garden_plants");
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return defaultPlants;
-  });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("user_garden_plants", JSON.stringify(plants));
-    }
-  }, [plants]);
-
-  const handleDeletePlant = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPlants(plants.filter((p) => p.id !== id));
-  };
-
-  const handleClearGarden = () => {
-    if (confirm("Очистить текущие растения и начать свой собственный сад с нуля?")) {
-      setPlants([]);
-    }
-  };
-
-  const handleResetDemo = () => {
-    setPlants(defaultPlants);
-  };
 
   const outdoorZones = ["Все на участке", "Плодовый сад", "Клумбы & Альпинарий", "Теплица & Грядки", "Газон & Изгородь", "Карантин"];
   const indoorZones = ["Все домашние", "Подоконник", "Гостиная", "Карантин"];
@@ -188,9 +128,9 @@ export const GardenTab: React.FC<GardenTabProps> = ({
           
           <div className="flex gap-1.5">
             <button
-              onClick={handleClearGarden}
+              onClick={onClearGarden}
               className="bg-emerald-900/80 hover:bg-rose-700 text-white px-2.5 py-2.5 rounded-2xl border border-emerald-600/50 shadow flex items-center gap-1 text-[11px] font-semibold transition-colors"
-              title="Очистить сад"
+              title="Очистить мой сад"
             >
               <Trash2 className="w-4 h-4 text-rose-300" />
             </button>
@@ -237,7 +177,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
       <div className="flex justify-between items-center text-[11px] px-1 text-slate-500">
         <span>Показано: {displayedPlants.length} из {plants.length}</span>
         {plants.length === 0 && (
-          <button onClick={handleResetDemo} className="text-emerald-700 font-semibold flex items-center gap-1">
+          <button onClick={onResetDemo} className="text-emerald-700 font-semibold flex items-center gap-1">
             <RefreshCw className="w-3.5 h-3.5" /> Загрузить демо-сад
           </button>
         )}
@@ -300,7 +240,10 @@ export const GardenTab: React.FC<GardenTabProps> = ({
                       </span>
                     )}
                     <button
-                      onClick={(e) => handleDeletePlant(plant.id, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeletePlant(plant.id);
+                      }}
                       className="text-slate-300 hover:text-rose-600 p-1"
                       title="Удалить растение"
                     >
@@ -349,7 +292,7 @@ export const GardenTab: React.FC<GardenTabProps> = ({
             </div>
             <button
               onClick={onOpenAddModal}
-              className="px-4 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200"
             >
               + Добавить свое первое растение
             </button>
