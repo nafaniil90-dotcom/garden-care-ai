@@ -1,5 +1,11 @@
 "use client";
 
+declare global {
+  interface Window {
+    Telegram?: any;
+  }
+}
+
 export interface TelegramUser {
   id: number;
   first_name: string;
